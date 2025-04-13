@@ -1,48 +1,41 @@
 
-const form = document.getElementById("chat-form");
-const input = document.getElementById("user-input");
-const chatBox = document.getElementById("chat-box");
+const API_KEY = "DEIN_API_KEY_HIER_EINFÜGEN";
 
-const API_KEY = "KEY HERE"; // <-- Ersetze das hier später im Editor mit deinem echten Key
+async function sendMessage() {
+    const prompt = document.getElementById("userInput").value;
+    const output = document.getElementById("responseOutput");
+    output.textContent = "Antwort wird geladen...";
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const userText = input.value;
-  appendMessage("Du", userText, "user");
-  input.value = "";
+    try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "Du bist ein Kunstvermittler der Kunsthalle und beantwortest Fragen zu Caspar David Friedrichs 'Wanderer über dem Nebelmeer'.",
+                    },
+                    { role: "user", content: prompt },
+                ],
+                temperature: 0.7,
+            }),
+        });
 
-  appendMessage("Friedrich", "Denke nach...", "bot");
+        const data = await response.json();
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${API_KEY}`
-    },
-    body: JSON.stringify({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: "system", content: "Du bist Friedrich, ein freundlicher AI-Concierge in einer Kunsthalle. Beantworte Fragen zum Gemälde 'Wanderer über dem Nebelmeer' von Caspar David Friedrich in einfacher Sprache." },
-        { role: "user", content: userText }
-      ]
-    })
-  });
-
-  const data = await response.json();
-  const botReply = data.choices?.[0]?.message?.content || "Fehler bei der Antwort.";
-  removeLastBotMessage();
-  appendMessage("Friedrich", botReply, "bot");
-});
-
-function appendMessage(name, text, cls) {
-  const div = document.createElement("div");
-  div.classList.add("message", cls);
-  div.innerHTML = `<strong>${name}:</strong> ${text}`;
-  chatBox.appendChild(div);
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function removeLastBotMessage() {
-  const messages = chatBox.querySelectorAll(".bot");
-  if (messages.length) chatBox.removeChild(messages[messages.length - 1]);
+        if (data.choices && data.choices.length > 0) {
+            output.textContent = data.choices[0].message.content.trim();
+        } else {
+            output.textContent = "Fehler bei der Antwort.";
+            console.error(data);
+        }
+    } catch (error) {
+        output.textContent = "Fehler beim Abrufen der Antwort.";
+        console.error(error);
+    }
 }
